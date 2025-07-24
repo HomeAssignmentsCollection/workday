@@ -1,0 +1,62 @@
+#!/bin/bash
+# Pre-commit hook: run static checks before commit
+# Place this file in .git/hooks/ as 'pre-commit' and make it executable
+
+# Redirect output to stderr
+exec 1>&2
+
+# Run flake8
+if command -v flake8 >/dev/null 2>&1; then
+  echo "[pre-commit] Running flake8..."
+  flake8 .
+  if [ $? -ne 0 ]; then
+    echo "[pre-commit] flake8 failed. Commit aborted."
+    exit 1
+  fi
+fi
+
+# Run pytest
+if command -v pytest >/dev/null 2>&1; then
+  echo "[pre-commit] Running pytest..."
+  pytest
+  if [ $? -ne 0 ]; then
+    echo "[pre-commit] pytest failed. Commit aborted."
+    exit 1
+  fi
+fi
+
+# Run shellcheck for bash scripts
+if command -v shellcheck >/dev/null 2>&1; then
+  echo "[pre-commit] Running shellcheck on scripts/*.sh..."
+  for f in scripts/*.sh; do
+    [ -e "$f" ] || continue
+    shellcheck "$f"
+    if [ $? -ne 0 ]; then
+      echo "[pre-commit] shellcheck failed for $f. Commit aborted."
+      exit 1
+    fi
+  done
+fi
+
+# Run yamllint for YAML files
+if command -v yamllint >/dev/null 2>&1; then
+  echo "[pre-commit] Running yamllint..."
+  yamllint .
+  if [ $? -ne 0 ]; then
+    echo "[pre-commit] yamllint failed. Commit aborted."
+    exit 1
+  fi
+fi
+
+# Run tflint for Terraform files
+if command -v tflint >/dev/null 2>&1; then
+  echo "[pre-commit] Running tflint..."
+  tflint
+  if [ $? -ne 0 ]; then
+    echo "[pre-commit] tflint failed. Commit aborted."
+    exit 1
+  fi
+fi
+
+echo "[pre-commit] All checks passed. Proceeding with commit."
+exit 0 
